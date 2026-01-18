@@ -5,21 +5,18 @@ import api from '../services/api';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 
-const DonateItem = () => {
+const LendItem = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
-    category: 'Other',
-    condition: '',
-    type: 'Donate',
+    category: '',
     description: '',
     imageUrl: '',
     contact: '',
-    quantity: 1,
-    personalInfo: '',
-    message: ''
+    returnDuration: '',
+    deposit: '',
+    termsAccepted: false
   });
-  const [tags, setTags] = useState([]);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +24,8 @@ const DonateItem = () => {
   const [success, setSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  const availableTags = ['#Heavy', '#Fragile', '#MustPickUp'];
+  const categories = ['Electronics', 'Books', 'Tools', 'Clothes', 'Sports', 'Other'];
+  const returnDurations = ['1 Weekend', '1 Week', '1 Month'];
 
   if (!isAuthenticated()) {
     navigate('/login');
@@ -35,32 +33,17 @@ const DonateItem = () => {
   }
 
   const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
     // Clear validation error for this field
-    if (validationErrors[e.target.name]) {
+    if (validationErrors[name]) {
       setValidationErrors({
         ...validationErrors,
-        [e.target.name]: ''
+        [name]: ''
       });
-    }
-  };
-
-  const handleQuantityChange = (delta) => {
-    const newQuantity = Math.max(1, formData.quantity + delta);
-    setFormData({
-      ...formData,
-      quantity: newQuantity
-    });
-  };
-
-  const toggleTag = (tag) => {
-    if (tags.includes(tag)) {
-      setTags(tags.filter(t => t !== tag));
-    } else {
-      setTags([...tags, tag]);
     }
   };
 
@@ -95,8 +78,16 @@ const DonateItem = () => {
       errors.name = 'Product name is required';
     }
     
-    if (!formData.condition) {
-      errors.condition = 'Please select a condition';
+    if (!formData.category) {
+      errors.category = 'Please select a category';
+    }
+    
+    if (!formData.returnDuration) {
+      errors.returnDuration = 'Please select return duration';
+    }
+    
+    if (!formData.termsAccepted) {
+      errors.termsAccepted = 'You must accept the terms and conditions';
     }
     
     setValidationErrors(errors);
@@ -116,24 +107,19 @@ const DonateItem = () => {
     try {
       // Build description with additional info
       let fullDescription = formData.description || '';
-      if (formData.quantity > 1) {
-        fullDescription = `Quantity: ${formData.quantity}\n${fullDescription}`;
+      if (formData.returnDuration) {
+        fullDescription = `Return Duration: ${formData.returnDuration}\n${fullDescription}`;
       }
-      if (tags.length > 0) {
-        fullDescription = `${fullDescription}\n\nTags: ${tags.join(', ')}`;
+      if (formData.deposit) {
+        fullDescription = `${fullDescription}\n\nDeposit: ${formData.deposit}`;
       }
-      if (formData.personalInfo) {
-        fullDescription = `${fullDescription}\n\nPersonal Info: ${formData.personalInfo}`;
-      }
-      if (formData.message) {
-        fullDescription = `${fullDescription}\n\nMessage: ${formData.message}`;
-      }
+      fullDescription = `${fullDescription}\n\n⚠️ Please note: Before lending this item, please upload a "before" photo to document its condition.`;
 
       const submitFormData = new FormData();
       submitFormData.append('name', formData.name);
       submitFormData.append('category', formData.category);
-      submitFormData.append('condition', formData.condition);
-      submitFormData.append('type', 'Donate');
+      submitFormData.append('condition', 'Good'); // Default for lend items
+      submitFormData.append('type', 'Lend');
       submitFormData.append('description', fullDescription.trim());
       submitFormData.append('contact', formData.contact);
       
@@ -148,17 +134,14 @@ const DonateItem = () => {
       setSuccess(true);
       setFormData({
         name: '',
-        category: 'Other',
-        condition: '',
-        type: 'Donate',
+        category: '',
         description: '',
         imageUrl: '',
         contact: '',
-        quantity: 1,
-        personalInfo: '',
-        message: ''
+        returnDuration: '',
+        deposit: '',
+        termsAccepted: false
       });
-      setTags([]);
       setPhotoFile(null);
       setPhotoPreview(null);
       setValidationErrors({});
@@ -171,8 +154,8 @@ const DonateItem = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-2">🎁 Donate Form</h1>
-      <p className="text-gray-600 mb-6">Share your items with the IIUC community</p>
+      <h1 className="text-3xl font-bold mb-2">🤝 Lend Form</h1>
+      <p className="text-gray-600 mb-6">Temporarily share your items with the IIUC community</p>
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -193,7 +176,7 @@ const DonateItem = () => {
               value={formData.name}
               onChange={handleChange}
               className={`input-field ${validationErrors.name ? 'border-red-500' : ''}`}
-              placeholder="e.g., Introduction to Computer Science Textbook"
+              placeholder="e.g., Scientific Calculator"
             />
             {validationErrors.name && (
               <p className="text-red-500 text-xs mt-1">{validationErrors.name}</p>
@@ -202,7 +185,7 @@ const DonateItem = () => {
 
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Optional image upload</label>
+            <label className="block text-sm font-semibold mb-2">Optional image</label>
             <input
               type="file"
               accept="image/*"
@@ -228,6 +211,9 @@ const DonateItem = () => {
               className="input-field"
               placeholder="https://example.com/image.jpg"
             />
+            <p className="text-xs text-yellow-600 mt-2 font-medium">
+              📸 Reminder: Upload a "before" photo to document the item's condition before lending.
+            </p>
           </div>
 
           {/* Description */}
@@ -243,98 +229,62 @@ const DonateItem = () => {
             />
           </div>
 
-          {/* Quantity Selector */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Quantity</label>
-            <div className="flex items-center space-x-4">
-              <button
-                type="button"
-                onClick={() => handleQuantityChange(-1)}
-                className="w-10 h-10 rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition-colors font-bold"
-              >
-                −
-              </button>
-              <span className="text-xl font-semibold w-12 text-center">{formData.quantity}</span>
-              <button
-                type="button"
-                onClick={() => handleQuantityChange(1)}
-                className="w-10 h-10 rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white transition-colors font-bold"
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          {/* Personal Info */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Optional personal info</label>
-            <input
-              type="text"
-              name="personalInfo"
-              value={formData.personalInfo}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="Any additional information about yourself"
-            />
-          </div>
-
-          {/* Message */}
-          <div>
-            <label className="block text-sm font-semibold mb-2">Optional message</label>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              rows="3"
-              className="input-field"
-              placeholder="Any special message for recipients..."
-            />
-          </div>
-
-          {/* Condition Selector */}
+          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-2">
-              Condition <span className="text-red-500">*</span>
+              Category <span className="text-red-500">*</span>
             </label>
             <select
-              name="condition"
-              value={formData.condition}
+              name="category"
+              value={formData.category}
               onChange={handleChange}
-              className={`input-field ${validationErrors.condition ? 'border-red-500' : ''}`}
+              className={`input-field ${validationErrors.category ? 'border-red-500' : ''}`}
             >
-              <option value="">Select condition</option>
-              <option value="New">New</option>
-              <option value="Like New">Like New</option>
-              <option value="Good">Good</option>
-              <option value="Fair">Fair</option>
+              <option value="">Select category</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
             </select>
-            {validationErrors.condition && (
-              <p className="text-red-500 text-xs mt-1">{validationErrors.condition}</p>
+            {validationErrors.category && (
+              <p className="text-red-500 text-xs mt-1">{validationErrors.category}</p>
             )}
           </div>
 
-          {/* Quick Tags */}
+          {/* Return Duration */}
           <div>
-            <label className="block text-sm font-semibold mb-2">Quick tags (click-to-add)</label>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map(tag => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => toggleTag(tag)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    tags.includes(tag)
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {tag}
-                </button>
+            <label className="block text-sm font-semibold mb-2">
+              Return duration <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="returnDuration"
+              value={formData.returnDuration}
+              onChange={handleChange}
+              className={`input-field ${validationErrors.returnDuration ? 'border-red-500' : ''}`}
+            >
+              <option value="">Select duration</option>
+              {returnDurations.map(duration => (
+                <option key={duration} value={duration}>{duration}</option>
               ))}
-            </div>
-            {tags.length > 0 && (
-              <p className="text-xs text-gray-600 mt-2">Selected: {tags.join(', ')}</p>
+            </select>
+            {validationErrors.returnDuration && (
+              <p className="text-red-500 text-xs mt-1">{validationErrors.returnDuration}</p>
             )}
+          </div>
+
+          {/* Deposit */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Optional deposit</label>
+            <input
+              type="text"
+              name="deposit"
+              value={formData.deposit}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="e.g., 500 BDT or Item as collateral"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Specify if you require a deposit or collateral for lending this item
+            </p>
           </div>
 
           {/* Contact */}
@@ -351,12 +301,37 @@ const DonateItem = () => {
             />
           </div>
 
+          {/* Disclaimer */}
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
+            <p className="font-semibold mb-1">⚠️ Disclaimer:</p>
+            <p>By lending this item, you agree the platform is not responsible for damages. Please take a "before" photo and document the condition clearly.</p>
+          </div>
+
+          {/* Terms & Conditions */}
+          <div>
+            <label className="flex items-start">
+              <input
+                type="checkbox"
+                name="termsAccepted"
+                checked={formData.termsAccepted}
+                onChange={handleChange}
+                className="mt-1 mr-2"
+              />
+              <span className="text-sm">
+                I accept the terms and conditions <span className="text-red-500">*</span>
+              </span>
+            </label>
+            {validationErrors.termsAccepted && (
+              <p className="text-red-500 text-xs mt-1">{validationErrors.termsAccepted}</p>
+            )}
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !formData.termsAccepted}
             className="btn-primary w-full disabled:opacity-50"
           >
-            {loading ? 'Submitting...' : 'Submit Donation'}
+            {loading ? 'Submitting...' : 'Submit Lending Item'}
           </button>
         </form>
       </Card>
@@ -367,10 +342,10 @@ const DonateItem = () => {
           setSuccess(false);
           navigate('/browse');
         }}
-        title="Success! 🎉"
+        title="Success! 🤝"
       >
         <p className="text-gray-700 mb-4">
-          Your item has been successfully donated! It will now be visible to other students.
+          Your item is now available for lending! Students can request to borrow it.
         </p>
         <button
           onClick={() => {
@@ -386,4 +361,4 @@ const DonateItem = () => {
   );
 };
 
-export default DonateItem;
+export default LendItem;

@@ -1,24 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { getAuth } from '../services/auth';
 
 const BrowseItems = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRequests, setUserRequests] = useState([]);
+  const { user } = getAuth();
   const [filters, setFilters] = useState({
     category: '',
     type: '',
     q: ''
   });
 
-  useEffect(() => {
-    fetchItems();
-  }, [filters]);
-
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -27,13 +25,39 @@ const BrowseItems = () => {
       if (filters.q) params.append('q', filters.q);
 
       const response = await api.get(`/items?${params.toString()}`);
-      setItems(response.data.items || []);
+      const allItems = response.data.items || [];
+      // Filter out items that are CLAIMED (have approved requests)
+      const availableItems = allItems.filter(item => {
+        const hasApproved = item.requests?.some(r => r.status === 'Approved');
+        return !hasApproved; // Only show items without approved requests
+      });
+      setItems(availableItems);
     } catch (error) {
       console.error('Failed to fetch items:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.category, filters.type, filters.q]);
+
+  const fetchUserRequests = useCallback(async () => {
+    try {
+      const response = await api.get('/requests/my');
+      setUserRequests(response.data.requests || []);
+    } catch (error) {
+      console.error('Failed to fetch user requests:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserRequests();
+    }
+  }, [user?.id, fetchUserRequests]);
+
 
   const handleFilterChange = (e) => {
     setFilters({
@@ -42,16 +66,42 @@ const BrowseItems = () => {
     });
   };
 
-  const getStatusBadge = (type) => {
+  const getItemStatus = (item) => {
+    if (!item.requests || item.requests.length === 0) {
+      return 'Available';
+    }
+    const hasApproved = item.requests.some(r => r.status === 'Approved');
+    if (hasApproved) {
+      return 'Claimed';
+    }
+    const hasPending = item.requests.some(r => r.status === 'Pending');
+    if (hasPending) {
+      return 'Pending';
+    }
+    return 'Available';
+  };
+
+  const getTypeBadge = (type) => {
     return type === 'Donate' 
-      ? <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-semibold">Donate</span>
-      : <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold">Lend</span>;
+      ? <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Donate</span>
+      : <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Lend</span>;
+  };
+
+  const getStatusBadge = (status) => {
+    const colors = {
+      'Available': 'bg-green-100 text-green-800',
+      'Pending': 'bg-yellow-100 text-yellow-800',
+      'Claimed': 'bg-gray-100 text-gray-800'
+    };
+    return (
+      <span className={`${colors[status] || 'bg-gray-100 text-gray-800'} px-2 py-1 rounded text-xs font-semibold`}>
+        {status}
+      </span>
+    );
   };
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <QuoteBox />
-      
       <h1 className="text-3xl font-bold mb-6">Browse Items</h1>
 
       <Card className="mb-6">
@@ -108,20 +158,28 @@ const BrowseItems = () => {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
-            <Card key={item.id}>
+            <Card key={item.id} className="relative">
               {item.imageUrl && (
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="w-full h-48 object-cover rounded-lg mb-4"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
+                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                  {getTypeBadge(item.type)}
+                </div>
+              )}
+              {!item.imageUrl && (
+                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                  {getTypeBadge(item.type)}
+                </div>
               )}
               <div className="flex justify-between items-start mb-3">
                 <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
-                {getStatusBadge(item.type)}
+                {getStatusBadge(getItemStatus(item))}
               </div>
               <p className="text-sm text-gray-600 mb-2">
                 <span className="font-semibold">Category:</span> {item.category}
@@ -135,12 +193,38 @@ const BrowseItems = () => {
               <p className="text-xs text-gray-500 mb-4">
                 By {item.owner?.name || 'Anonymous'}
               </p>
-              <Link
-                to={`/request/${item.id}`}
-                className="btn-primary w-full text-center block"
-              >
-                Request Item
-              </Link>
+              {user && item.ownerId === user.id ? (
+                <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-center text-sm">
+                  Your Item
+                </div>
+              ) : (() => {
+                // Check if current user has already requested this item
+                const userRequest = userRequests.find(r => r.itemId === item.id || r.item?.id === item.id);
+                const hasUserRequest = userRequest !== undefined;
+                const isPending = userRequest?.status === 'Pending';
+                const isApproved = userRequest?.status === 'Approved';
+                
+                if (hasUserRequest) {
+                  return (
+                    <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${
+                      isPending ? 'bg-yellow-100 text-yellow-800' : 
+                      isApproved ? 'bg-green-100 text-green-800' : 
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {isPending ? 'PENDING' : isApproved ? 'CLAIMED' : 'Requested'}
+                    </div>
+                  );
+                }
+                
+                return (
+                  <Link
+                    to={`/request/${item.id}`}
+                    className="btn-primary w-full text-center block"
+                  >
+                    Request Item
+                  </Link>
+                );
+              })()}
             </Card>
           ))}
         </div>
