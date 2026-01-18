@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { isAuthenticated } from '../services/auth';
+import { isAuthenticated, getAuth } from '../services/auth';
 import api from '../services/api';
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 import { BookOpenIcon, HeartIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [myItemsCount, setMyItemsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const { user: authUser } = getAuth();
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -28,12 +29,29 @@ const Dashboard = () => {
       }
     };
 
+    const fetchMyItemsCount = async () => {
+      try {
+        const response = await api.get('/items?limit=1000');
+        const allItems = response.data.items || [];
+        const ownedItems = allItems.filter(item => item.ownerId === authUser?.id);
+        setMyItemsCount(ownedItems.length);
+      } catch (error) {
+        console.error('Failed to fetch my items count:', error);
+      }
+    };
+
     fetchUser();
+    if (authUser?.id) {
+      fetchMyItemsCount();
+    }
 
     // Refetch when page becomes visible (e.g., navigating back from profile)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchUser();
+        if (authUser?.id) {
+          fetchMyItemsCount();
+        }
       }
     };
 
@@ -42,7 +60,7 @@ const Dashboard = () => {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [navigate]);
+  }, [navigate, authUser?.id]);
 
   if (loading) {
     return (
@@ -54,8 +72,6 @@ const Dashboard = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
-      <QuoteBox />
-      
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
       <div className="grid md:grid-cols-3 gap-6 mb-8">
@@ -82,14 +98,15 @@ const Dashboard = () => {
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-600 mb-1">Role</p>
-              <p className="text-lg font-semibold text-primary capitalize">{user?.role || 'user'}</p>
+              <p className="text-gray-600 mb-1">My Contributions</p>
+              <p className="text-3xl font-bold text-primary">{myItemsCount}</p>
             </div>
+            <PlusIcon className="w-12 h-12 text-primary opacity-50" />
           </div>
         </Card>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 mb-6">
         <Card>
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="space-y-3">
@@ -97,8 +114,11 @@ const Dashboard = () => {
               <PlusIcon className="w-5 h-5" />
               <span>Add New Item</span>
             </Link>
-            <Link to="/browse" className="btn-secondary w-full text-center block">
-              Browse Items
+            <Link to="/my-contributions" className="btn-secondary w-full text-center block">
+              My Contributions
+            </Link>
+            <Link to="/user-request" className="btn-secondary w-full text-center block">
+              User Request
             </Link>
             <Link to="/my-requests" className="btn-secondary w-full text-center block">
               My Requests

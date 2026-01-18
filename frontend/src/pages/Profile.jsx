@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, setAuth, getAuth } from '../services/auth';
 import api from '../services/api';
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 
 const Profile = () => {
@@ -127,8 +126,6 @@ const Profile = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-2xl">
-      <QuoteBox />
-      
       <h1 className="text-3xl font-bold mb-6">Update Profile</h1>
 
       <Card>

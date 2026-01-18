@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { isAuthenticated } from '../services/auth';
+import { isAuthenticated, getAuth } from '../services/auth';
 import api from '../services/api';
 import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
@@ -15,6 +15,8 @@ const RequestItem = () => {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [userRequest, setUserRequest] = useState(null);
+  const { user } = getAuth();
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -23,17 +25,42 @@ const RequestItem = () => {
     }
 
     fetchItem();
+    fetchUserRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, navigate]);
 
   const fetchItem = async () => {
     try {
       const response = await api.get(`/items/${id}`);
-      setItem(response.data);
+      const itemData = response.data;
+      setItem(itemData);
+      
+      // Check if user is the owner
+      if (user && itemData.ownerId === user.id) {
+        setError('You cannot request your own item. This item belongs to you.');
+      }
+      
+      // Check if item is already claimed (has approved request)
+      const hasApproved = itemData.requests?.some(r => r.status === 'Approved');
+      if (hasApproved && user && itemData.ownerId !== user.id) {
+        setError('This item has already been claimed by another user.');
+      }
     } catch (error) {
       console.error('Failed to fetch item:', error);
-      setError('Item not found.');
+      setError(error.response?.data?.message || 'Item not found.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserRequests = async () => {
+    try {
+      const response = await api.get('/requests/my');
+      const requests = response.data.requests || [];
+      const userReq = requests.find(r => r.itemId === id || r.item?.id === id);
+      setUserRequest(userReq || null);
+    } catch (error) {
+      console.error('Failed to fetch user requests:', error);
     }
   };
 
@@ -133,36 +160,71 @@ const RequestItem = () => {
         )}
       </Card>
 
-      <Card>
-        <h2 className="text-xl font-bold mb-4">Send Request</h2>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
+      {user && item.ownerId === user.id ? (
+        <Card>
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg mb-4">
+            <p className="font-semibold mb-2">⚠️ Cannot Request Own Item</p>
+            <p className="mb-4">You cannot request or borrow your own item. This item belongs to you.</p>
+            <Link to="/browse" className="btn-primary inline-block">
+              Browse Other Items
+            </Link>
           </div>
-        )}
+        </Card>
+      ) : (
+        <Card>
+          <h2 className="text-xl font-bold mb-4">Send Request</h2>
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold mb-2">Message (Optional)</label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              rows="4"
-              className="input-field"
-              placeholder="Add a message to the owner (e.g., when you need it, why you need it)..."
-            />
-          </div>
+          {userRequest && (
+            <div className={`px-4 py-3 rounded-lg mb-4 ${
+              userRequest.status === 'Pending' 
+                ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+                : userRequest.status === 'Approved'
+                ? 'bg-green-50 border border-green-200 text-green-800'
+                : 'bg-gray-50 border border-gray-200 text-gray-800'
+            }`}>
+              <p className="font-semibold mb-1">
+                {userRequest.status === 'Pending' ? '⏳ Request PENDING' : 
+                 userRequest.status === 'Approved' ? '✅ Request APPROVED - CLAIMED' : 
+                 'Request Status: ' + userRequest.status}
+              </p>
+              {userRequest.message && (
+                <p className="text-sm mt-2 italic">"{userRequest.message}"</p>
+              )}
+            </div>
+          )}
 
-          <button
-            type="submit"
-            disabled={requesting}
-            className="btn-primary w-full disabled:opacity-50"
-          >
-            {requesting ? 'Sending Request...' : 'Send Request'}
-          </button>
-        </form>
-      </Card>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold mb-2">Message (Optional)</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows="4"
+                className="input-field"
+                placeholder="Add a message to the owner (e.g., when you need it, why you need it)..."
+                disabled={!!userRequest}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={requesting || (user && item.ownerId === user.id) || !!userRequest}
+              className="btn-primary w-full disabled:opacity-50"
+            >
+              {userRequest 
+                ? (userRequest.status === 'Pending' ? 'Request Pending...' : 'Already Requested')
+                : (requesting ? 'Sending Request...' : 'Send Request')
+              }
+            </button>
+          </form>
+        </Card>
+      )}
 
       <Modal
         isOpen={success}
