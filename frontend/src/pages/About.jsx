@@ -1,12 +1,9 @@
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 import { HeartIcon, BookOpenIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 const About = () => {
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <QuoteBox />
-      
       <h1 className="text-4xl font-bold text-center mb-8">About IIUCShare</h1>
 
       <Card className="mb-8">

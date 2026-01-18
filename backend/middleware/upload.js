@@ -98,5 +98,8 @@ export const getItemImageUrl = (filename) => {
   if (!filename) return null;
   // If it's already a full URL (from external source), return as is
   if (filename.startsWith('http')) return filename;
-  return `/uploads/items/${filename}`;
+  // Return absolute URL for uploaded files
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const apiBase = baseUrl.replace(':5173', ':4000');
+  return `${apiBase}/uploads/items/${filename}`;
 };

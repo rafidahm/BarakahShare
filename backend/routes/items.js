@@ -6,6 +6,37 @@ import { uploadItem, getItemImageUrl } from '../middleware/upload.js';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Helper function to normalize imageUrl (convert relative paths to full URLs)
+const normalizeImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  // If it's already a full URL, return as is
+  if (imageUrl.startsWith('http')) return imageUrl;
+  // If it's a relative path starting with /uploads, convert to full URL
+  if (imageUrl.startsWith('/uploads/')) {
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const apiBase = baseUrl.replace(':5173', ':4000');
+    return `${apiBase}${imageUrl}`;
+  }
+  // If it's just a filename, construct full URL
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const apiBase = baseUrl.replace(':5173', ':4000');
+  return `${apiBase}/uploads/items/${imageUrl}`;
+};
+
+// Helper function to transform items' imageUrl
+const transformItem = (item) => {
+  if (!item) return item;
+  return {
+    ...item,
+    imageUrl: normalizeImageUrl(item.imageUrl)
+  };
+};
+
+// Helper function to transform array of items
+const transformItems = (items) => {
+  return items.map(transformItem);
+};
+
 /**
  * GET /api/items
  * Get paginated items with optional filters
@@ -48,6 +79,11 @@ router.get('/', async (req, res, next) => {
               picture: true
             }
           },
+          requests: {
+            select: {
+              status: true
+            }
+          },
           _count: {
             select: {
               requests: true
@@ -59,7 +95,7 @@ router.get('/', async (req, res, next) => {
     ]);
 
     res.json({
-      items,
+      items: transformItems(items),
       total,
       limit: parseInt(limit),
       offset: parseInt(offset)
@@ -108,7 +144,7 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ message: 'Item not found.' });
     }
 
-    res.json(item);
+    res.json(transformItem(item));
   } catch (error) {
     next(error);
   }
