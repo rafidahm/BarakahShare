@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { setAuth } from '../services/auth';
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 
 const Login = () => {
@@ -42,8 +41,6 @@ const Login = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-md">
-      <QuoteBox />
-      
       <Card>
         <h1 className="text-3xl font-bold text-center mb-6">Login to IIUCShare</h1>
         <p className="text-center text-gray-600 mb-6">
