@@ -37,9 +37,11 @@ const MyRequests = () => {
       Rejected: 'bg-red-100 text-red-800'
     };
 
+    const displayText = status === 'Approved' ? 'CLAIMED' : status;
+
     return (
       <span className={`px-3 py-1 rounded text-sm font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status}
+        {displayText}
       </span>
     );
   };
@@ -95,9 +97,23 @@ const MyRequests = () => {
                   {getStatusBadge(request.status)}
                 </div>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mb-2">
                 Requested on {new Date(request.createdAt).toLocaleDateString()}
               </p>
+              {request.status === 'Approved' && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-sm text-green-700 font-semibold">
+                    ✅ Your request has been approved! This item is CLAIMED. Please contact the owner to arrange pickup.
+                  </p>
+                </div>
+              )}
+              {request.status === 'Pending' && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-600">
+                    Waiting for owner approval...
+                  </p>
+                </div>
+              )}
             </Card>
           ))}
         </div>
