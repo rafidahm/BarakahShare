@@ -1,7 +1,6 @@
 {
     "buildCommand": "cd frontend && npm run build",
     "outputDirectory": "frontend/dist",
-    "installCommand": "npm install --prefix backend && npm install --prefix frontend",
     "functions": {
         "backend/api/index.js": {
             "memory": 1024,
