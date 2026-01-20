@@ -30,6 +30,7 @@ model Item {
   category    String
   condition   String
   type        String   // Donate | Lend
+  status      String   @default("AVAILABLE") // AVAILABLE | CLAIMED | IN_USE | COMPLETED | RETURNED
   description String?
   imageUrl    String?
   contact     String
