@@ -26,11 +26,8 @@ const BrowseItems = () => {
 
       const response = await api.get(`/items?${params.toString()}`);
       const allItems = response.data.items || [];
-      // Filter out items that are CLAIMED (have approved requests)
-      const availableItems = allItems.filter(item => {
-        const hasApproved = item.requests?.some(r => r.status === 'Approved');
-        return !hasApproved; // Only show items without approved requests
-      });
+      // Filter to only show AVAILABLE items (hide CLAIMED, IN_USE, COMPLETED, RETURNED)
+      const availableItems = allItems.filter(item => item.status === 'AVAILABLE');
       setItems(availableItems);
     } catch (error) {
       console.error('Failed to fetch items:', error);
@@ -67,22 +64,12 @@ const BrowseItems = () => {
   };
 
   const getItemStatus = (item) => {
-    if (!item.requests || item.requests.length === 0) {
-      return 'Available';
-    }
-    const hasApproved = item.requests.some(r => r.status === 'Approved');
-    if (hasApproved) {
-      return 'Claimed';
-    }
-    const hasPending = item.requests.some(r => r.status === 'Pending');
-    if (hasPending) {
-      return 'Pending';
-    }
-    return 'Available';
+    // Use the status field directly from the item
+    return item.status || 'AVAILABLE';
   };
 
   const getTypeBadge = (type) => {
-    return type === 'Donate' 
+    return type === 'Donate'
       ? <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Donate</span>
       : <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Lend</span>;
   };
@@ -203,19 +190,18 @@ const BrowseItems = () => {
                 const hasUserRequest = userRequest !== undefined;
                 const isPending = userRequest?.status === 'Pending';
                 const isApproved = userRequest?.status === 'Approved';
-                
+
                 if (hasUserRequest) {
                   return (
-                    <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${
-                      isPending ? 'bg-yellow-100 text-yellow-800' : 
-                      isApproved ? 'bg-green-100 text-green-800' : 
-                      'bg-gray-100 text-gray-600'
-                    }`}>
+                    <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${isPending ? 'bg-yellow-100 text-yellow-800' :
+                      isApproved ? 'bg-green-100 text-green-800' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
                       {isPending ? 'PENDING' : isApproved ? 'CLAIMED' : 'Requested'}
                     </div>
                   );
                 }
-                
+
                 return (
                   <Link
                     to={`/request/${item.id}`}

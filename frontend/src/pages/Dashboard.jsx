@@ -3,12 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import { isAuthenticated, getAuth } from '../services/auth';
 import api from '../services/api';
 import Card from '../components/Card';
-import { BookOpenIcon, HeartIcon, PlusIcon } from '@heroicons/react/24/outline';
+import Modal from '../components/Modal';
+import { BookOpenIcon, HeartIcon, PlusIcon, GiftIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [myItemsCount, setMyItemsCount] = useState(0);
+  const [userRequestsCount, setUserRequestsCount] = useState(0);
+  const [showItemTypeModal, setShowItemTypeModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const { user: authUser } = getAuth();
 
@@ -40,9 +43,25 @@ const Dashboard = () => {
       }
     };
 
+    const fetchUserRequestsCount = async () => {
+      try {
+        const response = await api.get('/items?limit=1000');
+        const allItems = response.data.items || [];
+        const myItems = allItems.filter(item => item.ownerId === authUser?.id);
+        // Count total requests on my items
+        const totalRequests = myItems.reduce((sum, item) => {
+          return sum + (item._count?.requests || 0);
+        }, 0);
+        setUserRequestsCount(totalRequests);
+      } catch (error) {
+        console.error('Failed to fetch user requests count:', error);
+      }
+    };
+
     fetchUser();
     if (authUser?.id) {
       fetchMyItemsCount();
+      fetchUserRequestsCount();
     }
 
     // Refetch when page becomes visible (e.g., navigating back from profile)
@@ -51,6 +70,7 @@ const Dashboard = () => {
         fetchUser();
         if (authUser?.id) {
           fetchMyItemsCount();
+          fetchUserRequestsCount();
         }
       }
     };
@@ -74,7 +94,7 @@ const Dashboard = () => {
     <div className="container mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -104,16 +124,32 @@ const Dashboard = () => {
             <PlusIcon className="w-12 h-12 text-primary opacity-50" />
           </div>
         </Card>
+
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-600 mb-1">User Requests</p>
+              <p className="text-3xl font-bold text-primary">{userRequestsCount}</p>
+            </div>
+            <HeartIcon className="w-12 h-12 text-primary opacity-50" />
+          </div>
+        </Card>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <Card>
           <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <Link to="/donate" className="btn-primary w-full flex items-center justify-center space-x-2">
-              <PlusIcon className="w-5 h-5" />
-              <span>Add New Item</span>
-            </Link>
+            <div className="grid grid-cols-2 gap-3">
+              <Link to="/donate" className="btn-primary text-center flex items-center justify-center gap-2">
+                <GiftIcon className="w-5 h-5" />
+                <span>Donate Item</span>
+              </Link>
+              <Link to="/lend" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-center flex items-center justify-center gap-2">
+                <ArrowPathIcon className="w-5 h-5" />
+                <span>Lend Item</span>
+              </Link>
+            </div>
             <Link to="/my-contributions" className="btn-secondary w-full text-center block">
               My Contributions
             </Link>
@@ -163,6 +199,35 @@ const Dashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Item Type Selection Modal */}
+      <Modal
+        isOpen={showItemTypeModal}
+        onClose={() => setShowItemTypeModal(false)}
+        title="Choose Item Type"
+      >
+        <p className="text-gray-700 mb-6">What would you like to do with your item?</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Link
+            to="/donate"
+            className="p-6 border-2 border-primary rounded-lg hover:bg-primary hover:text-white transition-all text-center group"
+            onClick={() => setShowItemTypeModal(false)}
+          >
+            <GiftIcon className="w-12 h-12 mx-auto mb-3 text-primary group-hover:text-white" />
+            <h3 className="font-bold text-lg mb-2">Donate</h3>
+            <p className="text-sm text-gray-600 group-hover:text-white">Give away your item permanently</p>
+          </Link>
+          <Link
+            to="/lend"
+            className="p-6 border-2 border-blue-500 rounded-lg hover:bg-blue-500 hover:text-white transition-all text-center group"
+            onClick={() => setShowItemTypeModal(false)}
+          >
+            <ArrowPathIcon className="w-12 h-12 mx-auto mb-3 text-blue-500 group-hover:text-white" />
+            <h3 className="font-bold text-lg mb-2">Lend</h3>
+            <p className="text-sm text-gray-600 group-hover:text-white">Lend your item temporarily</p>
+          </Link>
+        </div>
+      </Modal>
     </div>
   );
 };
