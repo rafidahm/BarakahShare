@@ -50,29 +50,48 @@ const Navbar = () => {
                 <Link to="/dashboard" className="text-gray-700 hover:text-primary transition-colors">
                   Dashboard
                 </Link>
-                <Link to="/profile" className="text-gray-700 hover:text-primary transition-colors">
-                  Profile
-                </Link>
                 {user?.role === 'admin' && (
                   <Link to="/admin" className="text-gray-700 hover:text-primary transition-colors font-semibold">
                     Admin
                   </Link>
                 )}
-                <Link to="/donate" className="btn-primary text-sm">
-                  Donate Item
-                </Link>
+                <div className="relative group">
+                  <button className="btn-primary text-sm">
+                    Add Item
+                  </button>
+                  <div className="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                    <Link
+                      to="/donate"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 hover:bg-gray-50 rounded-t-lg border-b transition-colors font-medium text-gray-700 hover:text-primary"
+                    >
+                      <span>🎁</span>
+                      <span>Donate</span>
+                    </Link>
+                    <Link
+                      to="/lend"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 hover:bg-gray-50 rounded-b-lg transition-colors font-medium text-gray-700 hover:text-blue-600"
+                    >
+                      <span>🔄</span>
+                      <span>Lend</span>
+                    </Link>
+                  </div>
+                </div>
                 <div className="flex items-center space-x-3">
-                  {user?.picture ? (
-                    <img
-                      src={user.picture}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full object-cover"
-                      key={user.picture} // Force re-render when picture changes
-                    />
-                  ) : (
-                    <UserCircleIcon className="w-8 h-8 text-gray-600" />
-                  )}
-                  <span className="text-sm text-gray-700">{user?.name}</span>
+                  <Link to="/profile" className="flex items-center space-x-2 group">
+                    {user?.picture ? (
+                      <img
+                        src={user.picture}
+                        alt={user.name}
+                        className="w-8 h-8 rounded-full object-cover"
+                        key={user.picture} // Force re-render when picture changes
+                      />
+                    ) : (
+                      <UserCircleIcon className="w-8 h-8 text-gray-600" />
+                    )}
+                    <span className="text-sm text-gray-700 group-hover:text-primary transition-all">
+                      {user?.name}
+                    </span>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="p-2 text-gray-600 hover:text-primary transition-colors"
