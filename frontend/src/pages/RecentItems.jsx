@@ -7,6 +7,7 @@ import { getAuth } from '../services/auth';
 const RecentItems = () => {
   const [recentItems, setRecentItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userRequests, setUserRequests] = useState([]);
   const { user } = getAuth();
 
   useEffect(() => {
@@ -15,11 +16,8 @@ const RecentItems = () => {
       try {
         const response = await api.get('/items?limit=10');
         const allItems = response.data.items || [];
-        // Filter out items that are CLAIMED (have approved requests)
-        const availableItems = allItems.filter(item => {
-          const hasApproved = item.requests?.some(r => r.status === 'Approved');
-          return !hasApproved; // Only show items without approved requests
-        });
+        // Filter to only show AVAILABLE items
+        const availableItems = allItems.filter(item => item.status === 'AVAILABLE');
         setRecentItems(availableItems);
       } catch (error) {
         console.error('Failed to fetch recent items:', error);
@@ -31,23 +29,28 @@ const RecentItems = () => {
     fetchRecentItems();
   }, []);
 
+  useEffect(() => {
+    const fetchUserRequests = async () => {
+      if (user?.id) {
+        try {
+          const response = await api.get('/requests/my');
+          setUserRequests(response.data.requests || []);
+        } catch (error) {
+          console.error('Failed to fetch user requests:', error);
+        }
+      }
+    };
+
+    fetchUserRequests();
+  }, [user?.id]);
+
   const getItemStatus = (item) => {
-    if (!item.requests || item.requests.length === 0) {
-      return 'Available';
-    }
-    const hasApproved = item.requests.some(r => r.status === 'Approved');
-    if (hasApproved) {
-      return 'Claimed';
-    }
-    const hasPending = item.requests.some(r => r.status === 'Pending');
-    if (hasPending) {
-      return 'Pending';
-    }
-    return 'Available';
+    // Use the status field directly from the item
+    return item.status || 'AVAILABLE';
   };
 
   const getTypeBadge = (type) => {
-    return type === 'Donate' 
+    return type === 'Donate'
       ? <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Donate</span>
       : <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-semibold absolute top-2 right-2">Lend</span>;
   };
@@ -120,14 +123,33 @@ const RecentItems = () => {
                 <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-center text-sm">
                   Your Item
                 </div>
-              ) : (
-                <Link
-                  to={`/request/${item.id}`}
-                  className="btn-primary w-full text-center block"
-                >
-                  Request Item
-                </Link>
-              )}
+              ) : (() => {
+                // Check if current user has already requested this item
+                const userRequest = userRequests.find(r => r.itemId === item.id || r.item?.id === item.id);
+                const hasUserRequest = userRequest !== undefined;
+                const isPending = userRequest?.status === 'Pending';
+                const isApproved = userRequest?.status === 'Approved';
+
+                if (hasUserRequest) {
+                  return (
+                    <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${isPending ? 'bg-yellow-100 text-yellow-800' :
+                        isApproved ? 'bg-green-100 text-green-800' :
+                          'bg-gray-100 text-gray-600'
+                      }`}>
+                      {isPending ? 'PENDING' : isApproved ? 'CLAIMED' : 'Requested'}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    to={`/request/${item.id}`}
+                    className="btn-primary w-full text-center block"
+                  >
+                    Request Item
+                  </Link>
+                );
+              })()}
             </Card>
           ))}
         </div>

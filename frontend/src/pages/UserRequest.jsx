@@ -43,13 +43,14 @@ const UserRequest = () => {
     try {
       const response = await api.get('/items?limit=1000');
       const allItems = response.data.items || [];
-      
+
       // Filter items owned by current user that have requests
       const myItems = allItems.filter(item => item.ownerId === user?.id);
-      const itemsWithReqs = myItems.filter(item => 
+
+      const itemsWithReqs = myItems.filter(item =>
         item.requests && item.requests.length > 0
       );
-      
+
       // Fetch full request details for each item
       const itemsWithFullRequests = await Promise.all(
         itemsWithReqs.map(async (item) => {
@@ -61,7 +62,7 @@ const UserRequest = () => {
           }
         })
       );
-      
+
       setItemsWithRequests(itemsWithFullRequests);
     } catch (error) {
       console.error('Failed to fetch items:', error);
@@ -72,14 +73,8 @@ const UserRequest = () => {
   };
 
   const getItemStatus = (item) => {
-    if (!item.requests || item.requests.length === 0) {
-      return 'Available';
-    }
-    const hasApproved = item.requests.some(r => r.status === 'Approved');
-    if (hasApproved) {
-      return 'Claimed';
-    }
-    return 'Available';
+    // Use the status field directly from the database
+    return item.status || 'AVAILABLE';
   };
 
   const getPendingRequests = (item) => {
@@ -94,7 +89,7 @@ const UserRequest = () => {
     try {
       setError('');
       setSuccess('');
-      
+
       // Check if there's already an approved request
       const item = itemsWithRequests.find(i => i.id === itemId);
       if (item && getApprovedRequest(item)) {
@@ -128,29 +123,19 @@ const UserRequest = () => {
     try {
       setError('');
       setSuccess('');
-      
-      // For now, we'll note these actions - backend endpoints may need to be created
-      // These would update item status: COMPLETED, IN_USE, RETURNED, DEACTIVATE
-      
-      if (action === 'DEACTIVATE') {
-        const item = itemsWithRequests.find(i => i.id === itemId);
-        if (getItemStatus(item) !== 'Available') {
-          setError('You can only deactivate items with status AVAILABLE.');
-          return;
-        }
-        // TODO: Call API to deactivate item
-        setSuccess('Item deactivated (API endpoint needed)');
-      } else {
-        // TODO: Call API endpoints for COMPLETED, IN_USE, RETURNED
-        setSuccess(`Item status updated to ${action} (API endpoint needed)`);
-      }
-      
+
+      // Call status update endpoint
+      await api.patch(`/items/${itemId}/status`, { status: action });
+      setSuccess(`Item status updated to ${action} successfully.`);
+
       setTimeout(() => setSuccess(''), 3000);
       setShowStatusModal(false);
       setSelectedItem(null);
       setStatusAction('');
+      fetchItemsWithRequests();
     } catch (err) {
       setError(err.response?.data?.message || `Failed to update status to ${action}.`);
+      setShowStatusModal(false);
     }
   };
 
@@ -205,34 +190,41 @@ const UserRequest = () => {
 
             return (
               <Card key={item.id} className="relative">
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Item Info */}
-                  <div className="flex-1">
+                <div className="grid md:grid-cols-[60%_40%] gap-6">
+                  {/* Box 1 - Item Info */}
+                  <div className="border-r pr-6">
                     <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h2 className="text-2xl font-bold mb-2">{item.name}</h2>
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className={`px-3 py-1 rounded text-sm font-semibold ${
-                            item.type === 'Donate' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-bold mb-3">{item.name}</h2>
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className={`px-3 py-1 rounded text-sm font-semibold ${item.type === 'Donate'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {item.type}
                           </span>
-                          <span className={`px-3 py-1 rounded text-sm font-semibold ${
-                            status === 'Available' ? 'bg-green-100 text-green-800' :
-                            status === 'Claimed' ? 'bg-gray-100 text-gray-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
+                          <span className={`px-3 py-1 rounded text-sm font-semibold ${status === 'AVAILABLE' ? 'bg-green-100 text-green-800' :
+                            status === 'CLAIMED' ? 'bg-blue-100 text-blue-800' :
+                              status === 'COMPLETED' ? 'bg-purple-100 text-purple-800' :
+                                status === 'IN_USE' ? 'bg-yellow-100 text-yellow-800' :
+                                  status === 'RETURNED' ? 'bg-teal-100 text-teal-800' :
+                                    'bg-gray-100 text-gray-800'
+                            }`}>
                             {status}
                           </span>
                         </div>
+                        <p className="text-sm text-gray-600 mb-1">
+                          <span className="font-semibold">Category:</span> {item.category}
+                        </p>
+                        <p className="text-sm text-gray-600 mb-1">
+                          <span className="font-semibold">Condition:</span> {item.condition}
+                        </p>
                       </div>
                       {item.imageUrl && (
                         <img
                           src={item.imageUrl}
                           alt={item.name}
-                          className="w-32 h-32 object-cover rounded-lg"
+                          className="w-32 h-32 object-cover rounded-lg ml-4"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
@@ -240,13 +232,6 @@ const UserRequest = () => {
                       )}
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-1">
-                      <span className="font-semibold">Category:</span> {item.category}
-                    </p>
-                    <p className="text-sm text-gray-600 mb-1">
-                      <span className="font-semibold">Condition:</span> {item.condition}
-                    </p>
-                    
                     {/* Pending Requests Section */}
                     {pendingRequests.length > 0 && (
                       <div className="mt-4 pt-4 border-t">
@@ -288,63 +273,134 @@ const UserRequest = () => {
                       </div>
                     )}
 
-                    {/* Approved Request Section */}
-                    {approvedRequest && (
-                      <div className="mt-4 pt-4 border-t">
-                        <h3 className="font-semibold mb-3 text-lg text-green-700">✅ Approved Request</h3>
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                          <p className="font-semibold">{approvedRequest.user?.name || 'Anonymous'}</p>
-                          <p className="text-xs text-gray-600">{approvedRequest.user?.email}</p>
-                          {approvedRequest.message && (
-                            <p className="text-sm text-gray-700 mt-2 italic">"{approvedRequest.message}"</p>
-                          )}
-                          <p className="text-xs text-gray-500 mt-2">
-                            Approved on {new Date(approvedRequest.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="md:w-48 space-y-3">
-                    <h3 className="font-semibold mb-3">Actions</h3>
-                    
-                    {approvedRequest && status === 'Claimed' && (
-                      <>
-                        {isDonation ? (
-                          <button
-                            onClick={() => openStatusModal(item, 'COMPLETED')}
-                            className="btn-primary w-full"
-                          >
-                            Mark COMPLETED
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => openStatusModal(item, 'IN_USE')}
-                              className="btn-primary w-full"
-                            >
-                              Mark IN_USE
-                            </button>
-                            <button
-                              onClick={() => openStatusModal(item, 'RETURNED')}
-                              className="btn-secondary w-full"
-                            >
-                              Mark RETURNED
-                            </button>
-                          </>
-                        )}
-                      </>
+                  {/* Box 2 - Quick Actions */}
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
+
+                    {/* Phase 1: PENDING - Show pending requests with Approve/Decline buttons */}
+                    {pendingRequests.length > 0 && !approvedRequest && (
+                      <div className="space-y-3">
+                        {pendingRequests.map((request) => (
+                          <div key={request.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <p className="font-semibold mb-1">{request.user?.name || 'Anonymous'}</p>
+                            <p className="text-xs text-gray-600 mb-2">{request.user?.email}</p>
+                            {request.message && (
+                              <p className="text-sm text-gray-700 mb-3 italic">"{request.message}"</p>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleApprove(request.id, item.id)}
+                                className="btn-primary text-sm px-4 py-2 flex-1"
+                              >
+                                {isDonation ? 'Approve Donation' : 'Approve'}
+                              </button>
+                              <button
+                                onClick={() => handleReject(request.id)}
+                                className="btn-secondary text-sm px-4 py-2 flex-1"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     )}
 
-                    {status === 'Available' && (
-                      <button
-                        onClick={() => openStatusModal(item, 'DEACTIVATE')}
-                        className="btn-secondary w-full"
-                      >
-                        Deactivate Item
-                      </button>
+                    {/* Phase 2 & 3: Show summary when there's an approved request */}
+                    {approvedRequest && (
+                      <div className="space-y-4">
+                        {/* Summary Section */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-4">
+                          <h4 className="font-semibold text-base mb-3">
+                            {isDonation ? 'Donation Summary' : 'Lending Summary'}
+                          </h4>
+
+                          {/* Status Badge */}
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-600 mb-1">Status</p>
+                            <span className={`px-3 py-1 rounded text-sm font-semibold inline-block ${status === 'CLAIMED' ? 'bg-blue-100 text-blue-800' :
+                                status === 'IN_USE' ? 'bg-blue-100 text-blue-800' :
+                                  status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                    status === 'RETURNED' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
+                              }`}>
+                              {status === 'CLAIMED' ? (isDonation ? 'APPROVED' : 'CLAIMED') :
+                                status === 'IN_USE' ? 'IN USE' :
+                                  status === 'COMPLETED' ? '✅ COMPLETED' :
+                                    status === 'RETURNED' ? '✅ RETURNED' :
+                                      status}
+                            </span>
+                          </div>
+
+                          {/* Owner info */}
+                          <div className="mb-2">
+                            <p className="text-xs text-gray-600">
+                              {isDonation ? 'Donated by' : 'Lent by'}
+                            </p>
+                            <p className="text-sm font-medium">You</p>
+                          </div>
+
+                          {/* Recipient/Borrower info - only show after approval */}
+                          {approvedRequest && (
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-600">
+                                {isDonation ? 'Recipient' : 'Borrowed by'}
+                              </p>
+                              <p className="text-sm font-medium">{approvedRequest.user?.name || 'Anonymous'}</p>
+                              <p className="text-xs text-gray-500">{approvedRequest.user?.email}</p>
+                            </div>
+                          )}
+
+                          {/* Approved date - only show when available */}
+                          {approvedRequest?.createdAt && (
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-600">Approved on</p>
+                              <p className="text-sm">{new Date(approvedRequest.createdAt).toLocaleDateString()}</p>
+                            </div>
+                          )}
+
+                          {/* Completion/Return date - only show when status is COMPLETED or RETURNED */}
+                          {(status === 'COMPLETED' || status === 'RETURNED') && item.updatedAt && (
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-600">
+                                {isDonation ? 'Completed on' : 'Returned on'}
+                              </p>
+                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons - Phase 2 only (CLAIMED or IN_USE) */}
+                        {status === 'CLAIMED' && (
+                          <button
+                            onClick={() => openStatusModal(item, isDonation ? 'COMPLETED' : 'IN_USE')}
+                            className="btn-primary w-full"
+                          >
+                            {isDonation ? 'Confirm Handover' : 'Mark as IN USE'}
+                          </button>
+                        )}
+
+                        {status === 'IN_USE' && !isDonation && (
+                          <button
+                            onClick={() => openStatusModal(item, 'RETURNED')}
+                            className="btn-primary w-full"
+                          >
+                            Mark as Returned
+                          </button>
+                        )}
+
+                        {/* Phase 3: No buttons, just summary (COMPLETED or RETURNED) */}
+                      </div>
+                    )}
+
+                    {/* Show message when no pending requests and no approved request */}
+                    {pendingRequests.length === 0 && !approvedRequest && (
+                      <div className="text-center text-gray-500 text-sm py-4">
+                        No pending requests
+                      </div>
                     )}
                   </div>
                 </div>

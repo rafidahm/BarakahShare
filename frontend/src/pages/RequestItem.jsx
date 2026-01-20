@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { isAuthenticated, getAuth } from '../services/auth';
 import api from '../services/api';
-import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 
@@ -34,12 +33,12 @@ const RequestItem = () => {
       const response = await api.get(`/items/${id}`);
       const itemData = response.data;
       setItem(itemData);
-      
+
       // Check if user is the owner
       if (user && itemData.ownerId === user.id) {
         setError('You cannot request your own item. This item belongs to you.');
       }
-      
+
       // Check if item is already claimed (has approved request)
       const hasApproved = itemData.requests?.some(r => r.status === 'Approved');
       if (hasApproved && user && itemData.ownerId !== user.id) {
@@ -105,8 +104,7 @@ const RequestItem = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
-      <QuoteBox />
-      
+
       <Link to="/browse" className="text-primary hover:underline mb-4 inline-block">
         ← Back to Browse
       </Link>
@@ -124,11 +122,10 @@ const RequestItem = () => {
         )}
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-3xl font-bold">{item.name}</h1>
-          <span className={`px-3 py-1 rounded text-sm font-semibold ${
-            item.type === 'Donate' 
-              ? 'bg-green-100 text-green-800' 
+          <span className={`px-3 py-1 rounded text-sm font-semibold ${item.type === 'Donate'
+              ? 'bg-green-100 text-green-800'
               : 'bg-blue-100 text-blue-800'
-          }`}>
+            }`}>
             {item.type}
           </span>
         </div>
@@ -173,7 +170,7 @@ const RequestItem = () => {
       ) : (
         <Card>
           <h2 className="text-xl font-bold mb-4">Send Request</h2>
-          
+
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
               {error}
@@ -181,17 +178,16 @@ const RequestItem = () => {
           )}
 
           {userRequest && (
-            <div className={`px-4 py-3 rounded-lg mb-4 ${
-              userRequest.status === 'Pending' 
+            <div className={`px-4 py-3 rounded-lg mb-4 ${userRequest.status === 'Pending'
                 ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
                 : userRequest.status === 'Approved'
-                ? 'bg-green-50 border border-green-200 text-green-800'
-                : 'bg-gray-50 border border-gray-200 text-gray-800'
-            }`}>
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-gray-50 border border-gray-200 text-gray-800'
+              }`}>
               <p className="font-semibold mb-1">
-                {userRequest.status === 'Pending' ? '⏳ Request PENDING' : 
-                 userRequest.status === 'Approved' ? '✅ Request APPROVED - CLAIMED' : 
-                 'Request Status: ' + userRequest.status}
+                {userRequest.status === 'Pending' ? '⏳ Request PENDING' :
+                  userRequest.status === 'Approved' ? '✅ Request APPROVED - CLAIMED' :
+                    'Request Status: ' + userRequest.status}
               </p>
               {userRequest.message && (
                 <p className="text-sm mt-2 italic">"{userRequest.message}"</p>
@@ -217,7 +213,7 @@ const RequestItem = () => {
               disabled={requesting || (user && item.ownerId === user.id) || !!userRequest}
               className="btn-primary w-full disabled:opacity-50"
             >
-              {userRequest 
+              {userRequest
                 ? (userRequest.status === 'Pending' ? 'Request Pending...' : 'Already Requested')
                 : (requesting ? 'Sending Request...' : 'Send Request')
               }
