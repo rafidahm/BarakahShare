@@ -45,4 +45,3 @@ app.use(errorHandler);
 
 // Export for Vercel serverless
 export default app;
-
