@@ -15,6 +15,7 @@ import UserRequest from './pages/UserRequest';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import About from './pages/About';
+import EditItem from './pages/EditItem';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
             <Route path="/my-requests" element={<MyRequests />} />
             <Route path="/my-contributions" element={<MyContributions />} />
             <Route path="/user-request" element={<UserRequest />} />
+            <Route path="/edit-item/:id" element={<EditItem />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/about" element={<About />} />
