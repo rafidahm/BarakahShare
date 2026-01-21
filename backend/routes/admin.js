@@ -7,7 +7,7 @@ const router = express.Router();
 
 // All admin routes require authentication and admin role
 router.use(authenticate);
-router.use(requireAdmin);
+router.use(isAdmin);
 
 /**
  * GET /api/admin/stats

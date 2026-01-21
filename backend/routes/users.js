@@ -1,9 +1,8 @@
 import express from 'express';
 import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { upload } from '../middleware/upload.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { uploadProfile, getProfileImageUrl } from '../middleware/upload.js';
+
 const router = express.Router();
 
 /**
