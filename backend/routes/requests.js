@@ -161,7 +161,10 @@ router.patch('/:id/approve', authenticate, async (req, res, next) => {
       // Approve the selected request (On Hold for donations, Approved for lending)
       prisma.request.update({
         where: { id },
-        data: { status: isDonation ? 'On Hold' : 'Approved' },
+        data: {
+          status: isDonation ? 'On Hold' : 'Approved',
+          approvedOn: new Date() // Set approval timestamp
+        },
         include: {
           item: {
             include: {

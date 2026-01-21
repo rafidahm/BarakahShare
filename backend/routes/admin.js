@@ -175,6 +175,23 @@ router.get('/items', async (req, res, next) => {
               email: true
             }
           },
+          requests: {
+            select: {
+              id: true,
+              status: true,
+              approvedOn: true,
+              lentOn: true,
+              returnedOn: true,
+              createdAt: true,
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              }
+            }
+          },
           _count: {
             select: {
               requests: true

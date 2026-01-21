@@ -8,6 +8,8 @@ import userRoutes from './routes/users.js';
 import itemRoutes from './routes/items.js';
 import requestRoutes from './routes/requests.js';
 import adminRoutes from './routes/admin.js';
+import wishlistRoutes from './routes/wishlist.js';
+import feedbackRoutes from './routes/feedback.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -29,7 +31,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -55,6 +57,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

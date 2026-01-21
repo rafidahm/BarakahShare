@@ -22,6 +22,8 @@ model User {
   createdAt DateTime @default(now())
   items     Item[]
   requests  Request[]
+  wishPosts WishPost[]
+  feedbacks Feedback[]
 }
 
 model Item {
@@ -41,12 +43,33 @@ model Item {
 }
 
 model Request {
+  id         String    @id @default(uuid())
+  status     String    @default("Pending") // Pending | Approved | Rejected | On Hold | In Use | Pending Return | Returned | Claimed
+  userId     String
+  itemId     String
+  user       User      @relation(fields: [userId], references: [id])
+  item       Item      @relation(fields: [itemId], references: [id])
+  message    String?
+  createdAt  DateTime  @default(now())
+  approvedOn DateTime? // When the request was approved
+  lentOn     DateTime? // When the item was handed over (for lending)
+  returnedOn DateTime? // When the item was returned (for lending)
+}
+
+model WishPost {
   id        String   @id @default(uuid())
-  status    String   @default("Pending") // Pending | Approved | Rejected
+  itemName  String
+  imageUrl  String?
   userId    String
-  itemId    String
   user      User     @relation(fields: [userId], references: [id])
-  item      Item     @relation(fields: [itemId], references: [id])
-  message   String?
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  type      String   // Report | Feedback | Query
+  message   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 }

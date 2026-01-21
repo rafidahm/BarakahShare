@@ -320,8 +320,8 @@ router.patch('/:id/status', authenticate, async (req, res, next) => {
         });
       }
     } else if (isLending) {
-      // Lending flow: AVAILABLE → CLAIMED → IN_USE → RETURNED (back to AVAILABLE)
-      const validLendingStatuses = ['AVAILABLE', 'CLAIMED', 'IN_USE', 'RETURNED'];
+      // Lending flow: AVAILABLE → CLAIMED → IN_USE → PENDING_RETURN → RETURNED (back to AVAILABLE)
+      const validLendingStatuses = ['AVAILABLE', 'CLAIMED', 'IN_USE', 'PENDING_RETURN', 'RETURNED'];
       if (!validLendingStatuses.includes(status)) {
         return res.status(400).json({
           message: `For lending, status must be one of: ${validLendingStatuses.join(', ')}`
@@ -362,19 +362,167 @@ router.patch('/:id/status', authenticate, async (req, res, next) => {
       prisma.request.updateMany({
         where: {
           itemId: id,
-          status: { in: ['Approved', 'On Hold'] } // Handle both lending and donation
+          status: { in: ['Approved', 'On Hold', 'In Use', 'Pending Return'] }
         },
         data: {
-          // Map item status to request status
+          // Map item status to request status and set timestamps
           status: status === 'IN_USE' ? 'In Use' :
-            status === 'COMPLETED' ? 'Claimed' : // Donation completed = Claimed ✅
-              status === 'RETURNED' ? 'Returned' :
-                'Approved' // Keep as Approved for CLAIMED (lending)
+            status === 'PENDING_RETURN' ? 'Pending Return' :
+              status === 'COMPLETED' ? 'Claimed' : // Donation completed = Claimed ✅
+                status === 'RETURNED' ? 'Returned' :
+                  'Approved', // Keep as Approved for CLAIMED (lending)
+          // Set lentOn when status becomes COMPLETED (donation) or IN_USE (lending)
+          ...(status === 'COMPLETED' || status === 'IN_USE' ? { lentOn: new Date() } : {}),
+          // Set returnedOn when status becomes RETURNED
+          ...(status === 'RETURNED' ? { returnedOn: new Date() } : {})
         }
       })
     ]);
 
     res.json(transformItem(updated));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PATCH /api/items/:id/borrower-action
+ * Borrower actions: mark as received or returned
+ * Protected route - only approved borrower can perform actions
+ */
+router.patch('/:id/borrower-action', authenticate, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body; // 'received' or 'returned'
+    const userId = req.user.id;
+
+    // Validate action
+    if (!action || !['received', 'returned'].includes(action)) {
+      return res.status(400).json({
+        message: "Invalid action. Must be 'received' or 'returned'"
+      });
+    }
+
+    // Get item with requests
+    const item = await prisma.item.findUnique({
+      where: { id },
+      include: {
+        requests: {
+          include: {
+            user: true
+          }
+        }
+      }
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found.' });
+    }
+
+    // Find the approved request for this user
+    const approvedRequest = item.requests.find(
+      r => r.userId === userId && (r.status === 'Approved' || r.status === 'In Use')
+    );
+
+    if (!approvedRequest) {
+      return res.status(403).json({
+        message: 'You are not the approved borrower for this item.'
+      });
+    }
+
+    // Validate action based on current status
+    if (action === 'received') {
+      if (item.status !== 'CLAIMED') {
+        return res.status(400).json({
+          message: 'Item must be in CLAIMED status to mark as received.'
+        });
+      }
+
+      // Update to IN_USE
+      const [updated] = await prisma.$transaction([
+        prisma.item.update({
+          where: { id },
+          data: { status: 'IN_USE' },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                picture: true
+              }
+            },
+            requests: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    picture: true
+                  }
+                }
+              }
+            }
+          }
+        }),
+        // Update request status and set lentOn timestamp
+        prisma.request.update({
+          where: { id: approvedRequest.id },
+          data: {
+            status: 'In Use',
+            lentOn: new Date() // Set lent timestamp when borrower confirms receipt
+          }
+        })
+      ]);
+
+      return res.json(transformItem(updated));
+    }
+
+    if (action === 'returned') {
+      if (item.status !== 'IN_USE') {
+        return res.status(400).json({
+          message: 'Item must be in IN_USE status to mark as returned.'
+        });
+      }
+
+      // Update to PENDING_RETURN
+      const [updated] = await prisma.$transaction([
+        prisma.item.update({
+          where: { id },
+          data: { status: 'PENDING_RETURN' },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                picture: true
+              }
+            },
+            requests: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    picture: true
+                  }
+                }
+              }
+            }
+          }
+        }),
+        // Update request status
+        prisma.request.update({
+          where: { id: approvedRequest.id },
+          data: { status: 'Pending Return' }
+        })
+      ]);
+
+      return res.json(transformItem(updated));
+    }
   } catch (error) {
     next(error);
   }
