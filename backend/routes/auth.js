@@ -1,10 +1,9 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { verifyGoogleToken } from '../utils/googleAuth.js';
 import { generateToken } from '../utils/jwt.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * POST /api/auth/google
@@ -16,8 +15,8 @@ router.post('/google', async (req, res, next) => {
     const { token } = req.body;
 
     if (!token) {
-      return res.status(400).json({ 
-        message: 'Google ID token is required.' 
+      return res.status(400).json({
+        message: 'Google ID token is required.'
       });
     }
 
@@ -27,12 +26,12 @@ router.post('/google', async (req, res, next) => {
       userInfo = await verifyGoogleToken(token);
     } catch (error) {
       if (error.message === 'DOMAIN_RESTRICTION') {
-        return res.status(403).json({ 
-          message: 'Only IIUC undergraduate students can access IIUCShare. Please use an @ugrad.iiuc.ac.bd email address.' 
+        return res.status(403).json({
+          message: 'Only IIUC undergraduate students can access IIUCShare. Please use an @ugrad.iiuc.ac.bd email address.'
         });
       }
-      return res.status(401).json({ 
-        message: 'Invalid Google token. Please try again.' 
+      return res.status(401).json({
+        message: 'Invalid Google token. Please try again.'
       });
     }
 
@@ -57,17 +56,17 @@ router.post('/google', async (req, res, next) => {
       const updateData = {
         name: userInfo.name
       };
-      
+
       // Only update picture if user doesn't have a custom uploaded one
       // If picture contains /uploads/profiles/, it's an uploaded file, preserve it
       // Google pictures start with https://lh3.googleusercontent.com
       // Otherwise, it might be null or old Google picture, update it
       const hasUploadedPicture = user.picture && user.picture.includes('/uploads/profiles/');
-      
+
       if (!hasUploadedPicture) {
         updateData.picture = userInfo.picture;
       }
-      
+
       user = await prisma.user.update({
         where: { id: user.id },
         data: updateData

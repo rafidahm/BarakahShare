@@ -1,10 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { uploadProfile, getProfileImageUrl } from '../middleware/upload.js';
-
+import { upload } from '../middleware/upload.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * GET /api/users/me
