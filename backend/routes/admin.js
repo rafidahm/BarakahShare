@@ -1,13 +1,12 @@
 import express from 'express';
 import prisma from '../lib/prisma.js';
-import { authenticate, isAdmin } from '../middleware/auth.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { authenticate, requireAdmin } from '../middleware/auth.js';
+
 const router = express.Router();
 
 // All admin routes require authentication and admin role
 router.use(authenticate);
-router.use(isAdmin);
+router.use(requireAdmin);
 
 /**
  * GET /api/admin/stats
