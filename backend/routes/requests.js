@@ -148,11 +148,20 @@ router.patch('/:id/approve', authenticate, async (req, res, next) => {
       });
     }
 
-    // Use transaction to update both request and item status atomically
+    // Get item details to check type
+    const itemDetails = await prisma.item.findUnique({
+      where: { id: request.itemId },
+      select: { type: true }
+    });
+
+    const isDonation = itemDetails?.type === 'Donate';
+
+    // Use transaction to update request, item status, and reject other pending requests atomically
     const [updated] = await prisma.$transaction([
+      // Approve the selected request (On Hold for donations, Approved for lending)
       prisma.request.update({
         where: { id },
-        data: { status: 'Approved' },
+        data: { status: isDonation ? 'On Hold' : 'Approved' },
         include: {
           item: {
             include: {
@@ -180,6 +189,15 @@ router.patch('/:id/approve', authenticate, async (req, res, next) => {
       prisma.item.update({
         where: { id: request.itemId },
         data: { status: 'CLAIMED' }
+      }),
+      // Automatically reject all other pending requests for this item
+      prisma.request.updateMany({
+        where: {
+          itemId: request.itemId,
+          status: 'Pending',
+          id: { not: id } // Exclude the approved request
+        },
+        data: { status: 'Rejected' }
       })
     ]);
 

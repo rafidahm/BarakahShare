@@ -63,7 +63,18 @@ const UserRequest = () => {
         })
       );
 
-      setItemsWithRequests(itemsWithFullRequests);
+      // Sort items by most recent request date (newest requests at top)
+      const sortedItems = itemsWithFullRequests.sort((a, b) => {
+        const getLatestRequestDate = (item) => {
+          if (!item.requests || item.requests.length === 0) return new Date(0);
+          const dates = item.requests.map(r => new Date(r.createdAt));
+          return new Date(Math.max(...dates));
+        };
+
+        return getLatestRequestDate(b) - getLatestRequestDate(a);
+      });
+
+      setItemsWithRequests(sortedItems);
     } catch (error) {
       console.error('Failed to fetch items:', error);
       setError('Failed to load items with requests.');
@@ -232,53 +243,10 @@ const UserRequest = () => {
                       )}
                     </div>
 
-                    {/* Pending Requests Section */}
-                    {pendingRequests.length > 0 && (
-                      <div className="mt-4 pt-4 border-t">
-                        <h3 className="font-semibold mb-3 text-lg">Pending Requests ({pendingRequests.length})</h3>
-                        <div className="space-y-3">
-                          {pendingRequests.map((request) => (
-                            <div key={request.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <p className="font-semibold">{request.user?.name || 'Anonymous'}</p>
-                                  <p className="text-xs text-gray-600">{request.user?.email}</p>
-                                  {request.message && (
-                                    <p className="text-sm text-gray-700 mt-2 italic">"{request.message}"</p>
-                                  )}
-                                  <p className="text-xs text-gray-500 mt-2">
-                                    Requested on {new Date(request.createdAt).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <div className="flex gap-2">
-                                  {!approvedRequest && (
-                                    <button
-                                      onClick={() => handleApprove(request.id, item.id)}
-                                      className="btn-primary text-sm px-4 py-2"
-                                    >
-                                      Approve
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => handleReject(request.id)}
-                                    className="btn-secondary text-sm px-4 py-2"
-                                  >
-                                    Reject
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-
                   </div>
 
-                  {/* Box 2 - Quick Actions */}
+                  {/* Box 2 - Actions */}
                   <div className="space-y-4">
-                    <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
 
                     {/* Phase 1: PENDING - Show pending requests with Approve/Decline buttons */}
                     {pendingRequests.length > 0 && !approvedRequest && (
@@ -322,10 +290,10 @@ const UserRequest = () => {
                           <div className="mb-3">
                             <p className="text-xs text-gray-600 mb-1">Status</p>
                             <span className={`px-3 py-1 rounded text-sm font-semibold inline-block ${status === 'CLAIMED' ? 'bg-blue-100 text-blue-800' :
-                                status === 'IN_USE' ? 'bg-blue-100 text-blue-800' :
-                                  status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                                    status === 'RETURNED' ? 'bg-green-100 text-green-800' :
-                                      'bg-gray-100 text-gray-800'
+                              status === 'IN_USE' ? 'bg-blue-100 text-blue-800' :
+                                status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                  status === 'RETURNED' ? 'bg-green-100 text-green-800' :
+                                    'bg-gray-100 text-gray-800'
                               }`}>
                               {status === 'CLAIMED' ? (isDonation ? 'APPROVED' : 'CLAIMED') :
                                 status === 'IN_USE' ? 'IN USE' :
@@ -362,12 +330,25 @@ const UserRequest = () => {
                             </div>
                           )}
 
-                          {/* Completion/Return date - only show when status is COMPLETED or RETURNED */}
-                          {(status === 'COMPLETED' || status === 'RETURNED') && item.updatedAt && (
+                          {/* Donated/Lent date - show when status is COMPLETED (donation) or IN_USE/RETURNED (lending) */}
+                          {status === 'COMPLETED' && isDonation && item.updatedAt && (
                             <div className="mb-2">
-                              <p className="text-xs text-gray-600">
-                                {isDonation ? 'Completed on' : 'Returned on'}
-                              </p>
+                              <p className="text-xs text-gray-600">Donated on</p>
+                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                            </div>
+                          )}
+
+                          {(status === 'IN_USE' || status === 'RETURNED') && !isDonation && (
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-600">Lent on</p>
+                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                            </div>
+                          )}
+
+                          {/* Return date - only show when status is RETURNED */}
+                          {status === 'RETURNED' && !isDonation && item.updatedAt && (
+                            <div className="mb-2">
+                              <p className="text-xs text-gray-600">Returned on</p>
                               <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
                             </div>
                           )}

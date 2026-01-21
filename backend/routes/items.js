@@ -329,33 +329,50 @@ router.patch('/:id/status', authenticate, async (req, res, next) => {
       }
     }
 
-    // Update item status
-    const updated = await prisma.item.update({
-      where: { id },
-      data: { status },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            picture: true
-          }
-        },
-        requests: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                picture: true
+    // Use transaction to update both item status and approved request status
+    const [updated] = await prisma.$transaction([
+      // Update item status
+      prisma.item.update({
+        where: { id },
+        data: { status },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              picture: true
+            }
+          },
+          requests: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  picture: true
+                }
               }
             }
           }
         }
-      }
-    });
+      }),
+      // Update the approved/on-hold request status to match item lifecycle
+      prisma.request.updateMany({
+        where: {
+          itemId: id,
+          status: { in: ['Approved', 'On Hold'] } // Handle both lending and donation
+        },
+        data: {
+          // Map item status to request status
+          status: status === 'IN_USE' ? 'In Use' :
+            status === 'COMPLETED' ? 'Claimed' : // Donation completed = Claimed ✅
+              status === 'RETURNED' ? 'Returned' :
+                'Approved' // Keep as Approved for CLAIMED (lending)
+        }
+      })
+    ]);
 
     res.json(transformItem(updated));
   } catch (error) {

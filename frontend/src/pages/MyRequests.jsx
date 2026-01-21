@@ -34,10 +34,18 @@ const MyRequests = () => {
     const styles = {
       Pending: 'bg-yellow-100 text-yellow-800',
       Approved: 'bg-green-100 text-green-800',
-      Rejected: 'bg-red-100 text-red-800'
+      Rejected: 'bg-red-100 text-red-800',
+      'On Hold': 'bg-orange-100 text-orange-800',
+      'In Use': 'bg-blue-100 text-blue-800',
+      Completed: 'bg-purple-100 text-purple-800',
+      Claimed: 'bg-green-100 text-green-800',
+      Returned: 'bg-teal-100 text-teal-800'
     };
 
-    const displayText = status === 'Approved' ? 'CLAIMED' : status;
+    // Add emoji for On Hold status
+    const displayText = status === 'Approved' ? 'CLAIMED' :
+      status === 'On Hold' ? '⏳ ON HOLD' :
+        status.toUpperCase();
 
     return (
       <span className={`px-3 py-1 rounded text-sm font-semibold ${styles[status] || 'bg-gray-100 text-gray-800'}`}>
@@ -57,7 +65,7 @@ const MyRequests = () => {
   return (
     <div className="container mx-auto px-4 py-12">
       <QuoteBox />
-      
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">My Requests</h1>
         <Link to="/browse" className="btn-secondary">
@@ -100,11 +108,37 @@ const MyRequests = () => {
               <p className="text-xs text-gray-500 mb-2">
                 Requested on {new Date(request.createdAt).toLocaleDateString()}
               </p>
+
+              {/* Date tracking based on item status and type */}
               {request.status === 'Approved' && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <p className="text-sm text-green-700 font-semibold">
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  <p className="text-sm text-green-700 font-semibold mb-3">
                     ✅ Your request has been approved! This item is CLAIMED. Please contact the owner to arrange pickup.
                   </p>
+
+                  {/* Approved date */}
+                  <div className="text-xs text-gray-600">
+                    <span className="font-semibold">Approved on:</span> {new Date(request.createdAt).toLocaleDateString()}
+                  </div>
+
+                  {/* Donated/Lent/Returned dates based on item status */}
+                  {request.item.type === 'Donate' && request.item.status === 'COMPLETED' && (
+                    <div className="text-xs text-gray-600">
+                      <span className="font-semibold">Donated on:</span> {new Date(request.item.updatedAt).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {request.item.type === 'Lend' && (request.item.status === 'IN_USE' || request.item.status === 'RETURNED') && (
+                    <div className="text-xs text-gray-600">
+                      <span className="font-semibold">Lent on:</span> {new Date(request.item.updatedAt).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {request.item.type === 'Lend' && request.item.status === 'RETURNED' && (
+                    <div className="text-xs text-gray-600">
+                      <span className="font-semibold">Returned on:</span> {new Date(request.item.updatedAt).toLocaleDateString()}
+                    </div>
+                  )}
                 </div>
               )}
               {request.status === 'Pending' && (
