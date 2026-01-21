@@ -25,7 +25,7 @@ const Login = () => {
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please try again.';
       setError(message);
-      
+
       // Show specific message for domain restriction
       if (message.includes('@ugrad.iiuc.ac.bd')) {
         setError('Only IIUC undergraduate students can access IIUCShare. Please use an @ugrad.iiuc.ac.bd email address.');
@@ -53,7 +53,7 @@ const Login = () => {
           </div>
         )}
 
-        <div className="text-center">
+        <div className="flex justify-center">
           {loading ? (
             <div className="text-primary">Logging in...</div>
           ) : (
