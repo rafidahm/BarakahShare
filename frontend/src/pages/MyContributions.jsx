@@ -135,70 +135,74 @@ const MyContributions = () => {
           </p>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {myItems.map((item) => (
-            <Card key={item.id} className="relative">
-              {item.imageUrl && (
-                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-              {!item.imageUrl && (
-                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-400">No Image</span>
-                </div>
-              )}
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
-                {getStatusBadge(getItemStatus(item))}
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-semibold">Type:</span> {item.type}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-semibold">Category:</span> {item.category}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-semibold">Condition:</span> {item.condition}
-              </p>
-              {item.description && (
-                <p className="text-sm text-gray-700 mb-3 line-clamp-2">{item.description}</p>
-              )}
-              {item.requests && item.requests.length > 0 && (
-                <p className="text-xs text-gray-600 mb-3">
-                  <span className="font-semibold">Requests:</span> {item.requests.filter(r => r.status === 'Pending').length} pending
-                  {item.requests.filter(r => r.status === 'Approved').length > 0 && (
-                    <span className="ml-2 text-green-700">
-                      • {item.requests.filter(r => r.status === 'Approved').length} approved
-                    </span>
+            <Card key={item.id} className="relative !p-0 flex flex-col h-full">
+              <div className="flex flex-col justify-between flex-grow p-6">
+                <div>
+                  {item.imageUrl && (
+                    <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="h-full object-contain"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
                   )}
-                </p>
-              )}
-              <div className="flex gap-2 mt-4">
-                {getItemStatus(item) === 'AVAILABLE' && (
-                  <Link
-                    to={`/edit-item/${item.id}`}
-                    className="btn-primary flex-1 text-center block"
-                  >
-                    Manage Item
-                  </Link>
-                )}
-                {getItemStatus(item) === 'AVAILABLE' && (
-                  <button
-                    onClick={() => handleDeleteClick(item)}
-                    className="btn-secondary px-4 py-2 flex items-center justify-center"
-                    title="Delete Item"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                )}
+                  {!item.imageUrl && (
+                    <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      <span className="text-gray-400">No Image</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
+                    {getStatusBadge(getItemStatus(item))}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-semibold">Type:</span> {item.type}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-semibold">Category:</span> {item.category}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-semibold">Condition:</span> {item.condition}
+                  </p>
+                  {item.description && (
+                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">{item.description}</p>
+                  )}
+                  {item.requests && item.requests.length > 0 && (
+                    <p className="text-xs text-gray-600 mb-3">
+                      <span className="font-semibold">Requests:</span> {item.requests.filter(r => r.status === 'Pending').length} pending
+                      {item.requests.filter(r => r.status === 'Approved').length > 0 && (
+                        <span className="ml-2 text-green-700">
+                          • {item.requests.filter(r => r.status === 'Approved').length} approved
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {getItemStatus(item) === 'AVAILABLE' && (
+                    <Link
+                      to={`/edit-item/${item.id}`}
+                      className="btn-primary flex-1 text-center block"
+                    >
+                      Manage Item
+                    </Link>
+                  )}
+                  {getItemStatus(item) === 'AVAILABLE' && (
+                    <button
+                      onClick={() => handleDeleteClick(item)}
+                      className="btn-secondary px-4 py-2 flex items-center justify-center"
+                      title="Delete Item"
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </Card>
           ))}

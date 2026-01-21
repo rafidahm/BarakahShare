@@ -93,7 +93,7 @@ const UserRequest = () => {
   };
 
   const getApprovedRequest = (item) => {
-    return item.requests?.find(r => r.status === 'Approved') || null;
+    return item.requests?.find(r => r.status === 'Approved' || r.status === 'On Hold' || r.status === 'Claimed' || r.status === 'In Use' || r.status === 'Pending Return' || r.status === 'Returned') || null;
   };
 
   const handleApprove = async (requestId, itemId) => {
@@ -235,7 +235,7 @@ const UserRequest = () => {
                         <img
                           src={item.imageUrl}
                           alt={item.name}
-                          className="w-32 h-32 object-cover rounded-lg ml-4"
+                          className="w-32 h-32 object-contain rounded-lg ml-4 bg-gray-50"
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
@@ -291,15 +291,17 @@ const UserRequest = () => {
                             <p className="text-xs text-gray-600 mb-1">Status</p>
                             <span className={`px-3 py-1 rounded text-sm font-semibold inline-block ${status === 'CLAIMED' ? 'bg-blue-100 text-blue-800' :
                               status === 'IN_USE' ? 'bg-blue-100 text-blue-800' :
-                                status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                                  status === 'RETURNED' ? 'bg-green-100 text-green-800' :
-                                    'bg-gray-100 text-gray-800'
+                                status === 'PENDING_RETURN' ? 'bg-orange-100 text-orange-800' :
+                                  status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                                    status === 'RETURNED' ? 'bg-green-100 text-green-800' :
+                                      'bg-gray-100 text-gray-800'
                               }`}>
                               {status === 'CLAIMED' ? (isDonation ? 'APPROVED' : 'CLAIMED') :
                                 status === 'IN_USE' ? 'IN USE' :
-                                  status === 'COMPLETED' ? '✅ COMPLETED' :
-                                    status === 'RETURNED' ? '✅ RETURNED' :
-                                      status}
+                                  status === 'PENDING_RETURN' ? '⏳ PENDING RETURN' :
+                                    status === 'COMPLETED' ? '✅ COMPLETED' :
+                                      status === 'RETURNED' ? '✅ RETURNED' :
+                                        status}
                             </span>
                           </div>
 
@@ -323,53 +325,65 @@ const UserRequest = () => {
                           )}
 
                           {/* Approved date - only show when available */}
-                          {approvedRequest?.createdAt && (
+                          {approvedRequest?.approvedOn && (
                             <div className="mb-2">
                               <p className="text-xs text-gray-600">Approved on</p>
-                              <p className="text-sm">{new Date(approvedRequest.createdAt).toLocaleDateString()}</p>
+                              <p className="text-sm">{new Date(approvedRequest.approvedOn).toLocaleDateString()}</p>
                             </div>
                           )}
 
                           {/* Donated/Lent date - show when status is COMPLETED (donation) or IN_USE/RETURNED (lending) */}
-                          {status === 'COMPLETED' && isDonation && item.updatedAt && (
+                          {status === 'COMPLETED' && isDonation && approvedRequest?.lentOn && (
                             <div className="mb-2">
                               <p className="text-xs text-gray-600">Donated on</p>
-                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                              <p className="text-sm">{new Date(approvedRequest.lentOn).toLocaleDateString()}</p>
                             </div>
                           )}
 
-                          {(status === 'IN_USE' || status === 'RETURNED') && !isDonation && (
+                          {(status === 'IN_USE' || status === 'PENDING_RETURN' || status === 'RETURNED') && !isDonation && approvedRequest?.lentOn && (
                             <div className="mb-2">
                               <p className="text-xs text-gray-600">Lent on</p>
-                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                              <p className="text-sm">{new Date(approvedRequest.lentOn).toLocaleDateString()}</p>
                             </div>
                           )}
 
                           {/* Return date - only show when status is RETURNED */}
-                          {status === 'RETURNED' && !isDonation && item.updatedAt && (
+                          {status === 'RETURNED' && !isDonation && approvedRequest?.returnedOn && (
                             <div className="mb-2">
                               <p className="text-xs text-gray-600">Returned on</p>
-                              <p className="text-sm">{new Date(item.updatedAt).toLocaleDateString()}</p>
+                              <p className="text-sm">{new Date(approvedRequest.returnedOn).toLocaleDateString()}</p>
                             </div>
                           )}
                         </div>
 
-                        {/* Action Buttons - Phase 2 only (CLAIMED or IN_USE) */}
-                        {status === 'CLAIMED' && (
+                        {/* Action Buttons - Phase 2 only (CLAIMED or IN_USE or PENDING_RETURN) */}
+                        {status === 'CLAIMED' && isDonation && (
                           <button
-                            onClick={() => openStatusModal(item, isDonation ? 'COMPLETED' : 'IN_USE')}
+                            onClick={() => openStatusModal(item, 'COMPLETED')}
                             className="btn-primary w-full"
                           >
-                            {isDonation ? 'Confirm Handover' : 'Mark as IN USE'}
+                            Confirm Handover
                           </button>
                         )}
 
+                        {status === 'CLAIMED' && !isDonation && (
+                          <div className="bg-gray-100 border border-gray-300 rounded-lg px-4 py-3 text-sm text-gray-600 text-center cursor-not-allowed">
+                            Waiting for Borrower to Confirm Receipt
+                          </div>
+                        )}
+
                         {status === 'IN_USE' && !isDonation && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+                            Item is currently with borrower. Waiting for them to mark as returned.
+                          </div>
+                        )}
+
+                        {status === 'PENDING_RETURN' && !isDonation && (
                           <button
                             onClick={() => openStatusModal(item, 'RETURNED')}
                             className="btn-primary w-full"
                           >
-                            Mark as Returned
+                            Confirm Return
                           </button>
                         )}
 

@@ -71,14 +71,14 @@ const DonateItem = () => {
         setError('Please select an image file');
         return;
       }
-      
+
       if (file.size > 10 * 1024 * 1024) {
         setError('Image size must be less than 10MB');
         return;
       }
 
       setPhotoFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result);
@@ -90,15 +90,15 @@ const DonateItem = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.name.trim()) {
       errors.name = 'Product name is required';
     }
-    
+
     if (!formData.condition) {
       errors.condition = 'Please select a condition';
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -136,7 +136,7 @@ const DonateItem = () => {
       submitFormData.append('type', 'Donate');
       submitFormData.append('description', fullDescription.trim());
       submitFormData.append('contact', formData.contact);
-      
+
       if (photoFile) {
         submitFormData.append('photo', photoFile);
       } else if (formData.imageUrl) {
@@ -144,7 +144,7 @@ const DonateItem = () => {
       }
 
       await api.post('/items', submitFormData);
-      
+
       setSuccess(true);
       setFormData({
         name: '',
@@ -213,7 +213,7 @@ const DonateItem = () => {
               <img
                 src={photoPreview}
                 alt="Preview"
-                className="w-full h-48 object-cover rounded-lg mb-2 border"
+                className="h-48 object-contain rounded-lg mb-2 border bg-gray-50 mx-auto block"
               />
             )}
             <p className="text-xs text-gray-500 mb-2">
@@ -322,11 +322,10 @@ const DonateItem = () => {
                   key={tag}
                   type="button"
                   onClick={() => toggleTag(tag)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                    tags.includes(tag)
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${tags.includes(tag)
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
                   {tag}
                 </button>

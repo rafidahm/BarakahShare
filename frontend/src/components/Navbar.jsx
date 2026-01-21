@@ -41,6 +41,9 @@ const Navbar = () => {
             <Link to="/browse" className="text-gray-700 hover:text-primary transition-colors">
               Browse
             </Link>
+            <Link to="/wishlist" className="text-orange-600 hover:text-orange-700 font-semibold transition-colors px-3 py-1 rounded-lg bg-orange-50 hover:bg-orange-100">
+              WishList
+            </Link>
             <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
               About
             </Link>

@@ -54,14 +54,14 @@ const LendItem = () => {
         setError('Please select an image file');
         return;
       }
-      
+
       if (file.size > 10 * 1024 * 1024) {
         setError('Image size must be less than 10MB');
         return;
       }
 
       setPhotoFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result);
@@ -73,23 +73,23 @@ const LendItem = () => {
 
   const validateForm = () => {
     const errors = {};
-    
+
     if (!formData.name.trim()) {
       errors.name = 'Product name is required';
     }
-    
+
     if (!formData.category) {
       errors.category = 'Please select a category';
     }
-    
+
     if (!formData.returnDuration) {
       errors.returnDuration = 'Please select return duration';
     }
-    
+
     if (!formData.termsAccepted) {
       errors.termsAccepted = 'You must accept the terms and conditions';
     }
-    
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -122,7 +122,7 @@ const LendItem = () => {
       submitFormData.append('type', 'Lend');
       submitFormData.append('description', fullDescription.trim());
       submitFormData.append('contact', formData.contact);
-      
+
       if (photoFile) {
         submitFormData.append('photo', photoFile);
       } else if (formData.imageUrl) {
@@ -130,7 +130,7 @@ const LendItem = () => {
       }
 
       await api.post('/items', submitFormData);
-      
+
       setSuccess(true);
       setFormData({
         name: '',
@@ -196,7 +196,7 @@ const LendItem = () => {
               <img
                 src={photoPreview}
                 alt="Preview"
-                className="w-full h-48 object-cover rounded-lg mb-2 border"
+                className="h-48 object-contain rounded-lg mb-2 border bg-gray-50 mx-auto block"
               />
             )}
             <p className="text-xs text-gray-500 mb-2">

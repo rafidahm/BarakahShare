@@ -16,6 +16,7 @@ import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import About from './pages/About';
 import EditItem from './pages/EditItem';
+import WishList from './pages/WishList';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
             <Route path="/donate" element={<DonateItem />} />
             <Route path="/lend" element={<LendItem />} />
             <Route path="/browse" element={<BrowseItems />} />
+            <Route path="/wishlist" element={<WishList />} />
             <Route path="/recent-items" element={<RecentItems />} />
             <Route path="/request/:id" element={<RequestItem />} />
             <Route path="/my-requests" element={<MyRequests />} />

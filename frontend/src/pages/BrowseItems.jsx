@@ -143,74 +143,79 @@ const BrowseItems = () => {
           <p className="text-center text-gray-600 py-8">No items found. Try adjusting your filters.</p>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
           {items.map((item) => (
-            <Card key={item.id} className="relative">
-              {item.imageUrl && (
-                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                  {getTypeBadge(item.type)}
-                </div>
-              )}
-              {!item.imageUrl && (
-                <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
-                  {getTypeBadge(item.type)}
-                </div>
-              )}
-              <div className="flex justify-between items-start mb-3">
-                <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
-                {getStatusBadge(getItemStatus(item))}
-              </div>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-semibold">Category:</span> {item.category}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                <span className="font-semibold">Condition:</span> {item.condition}
-              </p>
-              {item.description && (
-                <p className="text-sm text-gray-700 mb-4 line-clamp-2">{item.description}</p>
-              )}
-              <p className="text-xs text-gray-500 mb-4">
-                By {item.owner?.name || 'Anonymous'}
-              </p>
-              {user && item.ownerId === user.id ? (
-                <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-center text-sm">
-                  Your Item
-                </div>
-              ) : (() => {
-                // Check if current user has already requested this item
-                const userRequest = userRequests.find(r => r.itemId === item.id || r.item?.id === item.id);
-                const hasUserRequest = userRequest !== undefined;
-                const isPending = userRequest?.status === 'Pending';
-                const isApproved = userRequest?.status === 'Approved';
-
-                if (hasUserRequest) {
-                  return (
-                    <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${isPending ? 'bg-yellow-100 text-yellow-800' :
-                      isApproved ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-600'
-                      }`}>
-                      {isPending ? 'PENDING' : isApproved ? 'CLAIMED' : 'Requested'}
+            <Card key={item.id} className="relative !p-0 flex flex-col h-full">
+              <div className="flex flex-col justify-between flex-grow p-6">
+                <div>
+                  {item.imageUrl && (
+                    <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="h-full object-contain"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      {getTypeBadge(item.type)}
                     </div>
-                  );
-                }
+                  )}
+                  {!item.imageUrl && (
+                    <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center relative">
+                      {getTypeBadge(item.type)}
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
+                    {getStatusBadge(getItemStatus(item))}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-semibold">Category:</span> {item.category}
+                  </p>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <span className="font-semibold">Condition:</span> {item.condition}
+                  </p>
+                  {item.description && (
+                    <p className="text-sm text-gray-700 mb-4 line-clamp-2">{item.description}</p>
+                  )}
+                  <p className="text-xs text-gray-500">
+                    By {item.owner?.name || 'Anonymous'}
+                  </p>
+                </div>
+                <div>
+                  {user && item.ownerId === user.id ? (
+                    <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded text-center text-sm">
+                      Your Item
+                    </div>
+                  ) : (() => {
+                    const userRequest = userRequests.find(r => r.itemId === item.id || r.item?.id === item.id);
+                    const hasUserRequest = userRequest !== undefined;
+                    const isPending = userRequest?.status === 'Pending';
+                    const isApproved = userRequest?.status === 'Approved';
 
-                return (
-                  <Link
-                    to={`/request/${item.id}`}
-                    className="btn-primary w-full text-center block"
-                  >
-                    Request Item
-                  </Link>
-                );
-              })()}
+                    if (hasUserRequest) {
+                      return (
+                        <div className={`px-4 py-2 rounded text-center text-sm font-semibold ${isPending ? 'bg-yellow-100 text-yellow-800' :
+                          isApproved ? 'bg-green-100 text-green-800' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                          {isPending ? 'PENDING' : isApproved ? 'CLAIMED' : 'Requested'}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Link
+                        to={`/request/${item.id}`}
+                        className="btn-primary w-full text-center block"
+                      >
+                        Request Item
+                      </Link>
+                    );
+                  })()}
+                </div>
+              </div>
             </Card>
           ))}
         </div>

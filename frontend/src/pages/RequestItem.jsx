@@ -114,7 +114,7 @@ const RequestItem = () => {
           <img
             src={item.imageUrl}
             alt={item.name}
-            className="w-full h-64 object-cover rounded-lg mb-4"
+            className="h-64 object-contain rounded-lg mb-4 bg-gray-50 mx-auto block"
             onError={(e) => {
               e.target.style.display = 'none';
             }}
@@ -123,8 +123,8 @@ const RequestItem = () => {
         <div className="flex justify-between items-start mb-4">
           <h1 className="text-3xl font-bold">{item.name}</h1>
           <span className={`px-3 py-1 rounded text-sm font-semibold ${item.type === 'Donate'
-              ? 'bg-green-100 text-green-800'
-              : 'bg-blue-100 text-blue-800'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-blue-100 text-blue-800'
             }`}>
             {item.type}
           </span>
@@ -179,10 +179,10 @@ const RequestItem = () => {
 
           {userRequest && (
             <div className={`px-4 py-3 rounded-lg mb-4 ${userRequest.status === 'Pending'
-                ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
-                : userRequest.status === 'Approved'
-                  ? 'bg-green-50 border border-green-200 text-green-800'
-                  : 'bg-gray-50 border border-gray-200 text-gray-800'
+              ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+              : userRequest.status === 'Approved'
+                ? 'bg-green-50 border border-green-200 text-green-800'
+                : 'bg-gray-50 border border-gray-200 text-gray-800'
               }`}>
               <p className="font-semibold mb-1">
                 {userRequest.status === 'Pending' ? '⏳ Request PENDING' :
