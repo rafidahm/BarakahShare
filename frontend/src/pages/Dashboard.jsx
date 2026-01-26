@@ -159,6 +159,9 @@ const Dashboard = () => {
             <Link to="/my-requests" className="btn-secondary w-full text-center block">
               My Requests
             </Link>
+            <Link to="/my-wishlist" className="btn-secondary w-full text-center block">
+              My Wishlist
+            </Link>
           </div>
         </Card>
 

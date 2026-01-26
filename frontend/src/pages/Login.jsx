@@ -21,7 +21,7 @@ const Login = () => {
 
       const { token, user } = response.data;
       setAuth(token, user);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       const message = err.response?.data?.message || 'Login failed. Please try again.';
       setError(message);

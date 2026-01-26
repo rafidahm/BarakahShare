@@ -5,7 +5,7 @@ import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
 import FeedbackBox from '../components/FeedbackBox';
 import api from '../services/api';
-import { BookOpenIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { BookOpenIcon, HeartIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const Landing = () => {
   const authenticated = isAuthenticated();
@@ -14,6 +14,7 @@ const Landing = () => {
   const [loadingItems, setLoadingItems] = useState(true);
   const [wishPosts, setWishPosts] = useState([]);
   const [loadingWishes, setLoadingWishes] = useState(true);
+  const [deletingWishId, setDeletingWishId] = useState(null);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
@@ -80,6 +81,24 @@ const Landing = () => {
         {status}
       </span>
     );
+  };
+
+  const handleDeleteWish = async (wishId) => {
+    if (!window.confirm('Are you sure you want to delete this wish? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingWishId(wishId);
+    try {
+      await api.delete(`/wishlist/${wishId}`);
+      // Refresh the wishlist
+      await fetchWishPosts();
+    } catch (error) {
+      console.error('Failed to delete wish:', error);
+      alert(error.response?.data?.message || 'Failed to delete wish. Please try again.');
+    } finally {
+      setDeletingWishId(null);
+    }
   };
 
   return (
@@ -221,7 +240,18 @@ const Landing = () => {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {wishPosts.slice(0, 6).map((post) => (
-              <Card key={post.id} className="hover:shadow-lg transition-shadow border border-gray-200">
+              <Card key={post.id} className="hover:shadow-lg transition-shadow border border-gray-200 relative">
+                {/* Delete button - only visible to wish owner */}
+                {user && post.userId === user.id && (
+                  <button
+                    onClick={() => handleDeleteWish(post.id)}
+                    disabled={deletingWishId === post.id}
+                    className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+                    title="Delete this wish"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                )}
                 {post.imageUrl && (
                   <div className="w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center border border-gray-200">
                     <img
