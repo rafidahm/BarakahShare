@@ -60,7 +60,7 @@ router.get('/', async (req, res) => {
 // Create a new wish post
 router.post('/', authenticate, upload.single('image'), async (req, res) => {
     try {
-        const { itemName } = req.body;
+        const { itemName, description } = req.body;
         const userId = req.user.id;
 
         if (!itemName || !itemName.trim()) {
@@ -72,6 +72,7 @@ router.post('/', authenticate, upload.single('image'), async (req, res) => {
         const wishPost = await prisma.wishPost.create({
             data: {
                 itemName: itemName.trim(),
+                description: description?.trim() || null,
                 imageUrl,
                 userId
             },

@@ -57,12 +57,13 @@ model Request {
 }
 
 model WishPost {
-  id        String   @id @default(uuid())
-  itemName  String
-  imageUrl  String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid())
+  itemName    String
+  description String?
+  imageUrl    String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 model Feedback {

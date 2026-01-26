@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { isAuthenticated, getAuth } from '../services/auth';
 import QuoteBox from '../components/QuoteBox';
 import Card from '../components/Card';
+import Modal from '../components/Modal';
 import FeedbackBox from '../components/FeedbackBox';
 import api from '../services/api';
 import { BookOpenIcon, HeartIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -15,6 +16,8 @@ const Landing = () => {
   const [wishPosts, setWishPosts] = useState([]);
   const [loadingWishes, setLoadingWishes] = useState(true);
   const [deletingWishId, setDeletingWishId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [wishToDelete, setWishToDelete] = useState(null);
 
   useEffect(() => {
     const fetchRecentItems = async () => {
@@ -84,13 +87,18 @@ const Landing = () => {
   };
 
   const handleDeleteWish = async (wishId) => {
-    if (!window.confirm('Are you sure you want to delete this wish? This action cannot be undone.')) {
-      return;
-    }
+    setWishToDelete(wishId);
+    setShowDeleteModal(true);
+  };
 
-    setDeletingWishId(wishId);
+  const confirmDeleteWish = async () => {
+    if (!wishToDelete) return;
+
+    setDeletingWishId(wishToDelete);
+    setShowDeleteModal(false);
+
     try {
-      await api.delete(`/wishlist/${wishId}`);
+      await api.delete(`/wishlist/${wishToDelete}`);
       // Refresh the wishlist
       await fetchWishPosts();
     } catch (error) {
@@ -98,7 +106,13 @@ const Landing = () => {
       alert(error.response?.data?.message || 'Failed to delete wish. Please try again.');
     } finally {
       setDeletingWishId(null);
+      setWishToDelete(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setWishToDelete(null);
   };
 
   return (
@@ -264,8 +278,11 @@ const Landing = () => {
                     />
                   </div>
                 )}
-                <h3 className="text-xl font-bold text-gray-900 mb-4">{post.itemName}</h3>
-                <div className="flex items-center space-x-3 pb-4 border-b border-gray-200">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{post.itemName}</h3>
+                {post.description && (
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{post.description}</p>
+                )}
+                <div className="flex items-center space-x-3 pb-4 border-t border-gray-200 pt-4">
                   {post.user?.picture ? (
                     <img
                       src={post.user.picture}
@@ -321,6 +338,32 @@ const Landing = () => {
 
       {/* Feedback Box */}
       <FeedbackBox />
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={cancelDelete}
+        title="Delete Wish"
+      >
+        <p className="text-gray-700 mb-6">
+          Are you sure you want to delete this wish? This action cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={cancelDelete}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmDeleteWish}
+            disabled={deletingWishId !== null}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {deletingWishId ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { isAuthenticated, getAuth } from '../services/auth';
 import api from '../services/api';
 import Card from '../components/Card';
+import Modal from '../components/Modal';
 import FeedbackBox from '../components/FeedbackBox';
 import { TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
 
@@ -11,6 +12,8 @@ const MyWishlist = () => {
     const [wishPosts, setWishPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [deletingWishId, setDeletingWishId] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [wishToDelete, setWishToDelete] = useState(null);
     const { user } = getAuth();
 
     useEffect(() => {
@@ -35,13 +38,18 @@ const MyWishlist = () => {
     };
 
     const handleDeleteWish = async (wishId) => {
-        if (!window.confirm('Are you sure you want to delete this wish? This action cannot be undone.')) {
-            return;
-        }
+        setWishToDelete(wishId);
+        setShowDeleteModal(true);
+    };
 
-        setDeletingWishId(wishId);
+    const confirmDeleteWish = async () => {
+        if (!wishToDelete) return;
+
+        setDeletingWishId(wishToDelete);
+        setShowDeleteModal(false);
+
         try {
-            await api.delete(`/wishlist/${wishId}`);
+            await api.delete(`/wishlist/${wishToDelete}`);
             // Refresh the wishlist
             await fetchMyWishPosts();
         } catch (error) {
@@ -49,7 +57,13 @@ const MyWishlist = () => {
             alert(error.response?.data?.message || 'Failed to delete wish. Please try again.');
         } finally {
             setDeletingWishId(null);
+            setWishToDelete(null);
         }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setWishToDelete(null);
     };
 
     return (
@@ -128,9 +142,16 @@ const MyWishlist = () => {
                                 )}
 
                                 {/* Item Name */}
-                                <h3 className="text-xl font-bold text-gray-900 mb-4 pr-8">
+                                <h3 className="text-xl font-bold text-gray-900 mb-2 pr-8">
                                     {post.itemName}
                                 </h3>
+
+                                {/* Description */}
+                                {post.description && (
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        {post.description}
+                                    </p>
+                                )}
 
                                 {/* Posted Date */}
                                 <div className="pt-4 border-t border-gray-200">
@@ -169,6 +190,32 @@ const MyWishlist = () => {
 
             {/* Feedback Box */}
             <FeedbackBox />
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={cancelDelete}
+                title="Delete Wish"
+            >
+                <p className="text-gray-700 mb-6">
+                    Are you sure you want to delete this wish? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={cancelDelete}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={confirmDeleteWish}
+                        disabled={deletingWishId !== null}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {deletingWishId ? 'Deleting...' : 'Delete'}
+                    </button>
+                </div>
+            </Modal>
         </>
     );
 };

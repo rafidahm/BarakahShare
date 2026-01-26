@@ -50,6 +50,9 @@ const WishList = () => {
         try {
             const formData = new FormData();
             formData.append('itemName', itemName);
+            if (description && description.trim()) {
+                formData.append('description', description);
+            }
             if (image) {
                 formData.append('image', image);
             }
